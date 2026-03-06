@@ -17,6 +17,18 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 8,
     },
+
+    bio: {
+      type: String,
+      maxlength: 160,
+      default: "",
+    },
+
+    avatar: {
+      type: String,
+      default: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+    },
+
     isVerified: {
       type: Boolean,
       default: false,

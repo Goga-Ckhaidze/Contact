@@ -1,25 +1,28 @@
 import express from "express";
-import User from "../models/User.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import upload from "../config/multer.js";
+
+import {
+  searchUsers,
+  getProfile,
+  updateProfile,
+  changePassword,
+  uploadAvatar,
+  getFriendCount,
+} from "../controllers/userController.js";
 
 const router = express.Router();
 
-router.get("/search", async (req, res) => {
-  try {
-    const { name } = req.query;
-
-    if (!name) {
-      return res.status(400).json({ message: "Search name required" });
-    }
-
-    const users = await User.find({
-      username: { $regex: name, $options: "i" }
-    }).select("_id username");
-
-    res.json(users);
-
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+router.get("/search", authMiddleware, searchUsers);
+router.get("/me", authMiddleware, getProfile);
+router.put("/update", authMiddleware, updateProfile);
+router.put("/change-password", authMiddleware, changePassword);
+router.post(
+  "/upload-avatar",
+  authMiddleware,
+  upload.single("avatar"),
+  uploadAvatar
+);
+router.get("/friend-count", authMiddleware, getFriendCount);
 
 export default router;

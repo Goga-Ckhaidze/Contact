@@ -243,6 +243,10 @@ function MainPage() {
             <LogOut size={18} />
             <span>Logout</span>
           </button>
+<button className="profile-btn2" onClick={() => navigate("/profile")}>
+  <User size={18} />
+  <span>Profile</span>
+</button>
         </div>
 
         {/* FRIENDS */}
@@ -270,10 +274,12 @@ function MainPage() {
                       alt={friendUser.username}
                     />
                     <span
-                      className={`online-dot ${
-                        onlineUsers.includes(friendUser._id) ? "online" : "offline"
-                      }`}
-                    />
+  className={`online-dot ${
+    onlineUsers.some(id => String(id) === String(friendUser._id)) 
+      ? "online" 
+      : "offline"
+  }`}
+/>
                   </div>
                   <span className="friend-username">{friendUser.username}</span>
                   {unreadCounts[friend._id] > 0 && (

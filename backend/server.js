@@ -11,6 +11,7 @@ import userRoutes from "./routes/userRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import Message from "./models/Message.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import path from "path";
 
 dotenv.config();
 
@@ -23,7 +24,11 @@ const app = express();
 connectDB();
 
 /* ================= SECURITY ================= */
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -53,7 +58,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/messages", messageRoutes);
-
+app.use(
+  "/uploads",
+  cors({ origin: CLIENT_URL, credentials: true }),
+  express.static(path.join(path.resolve(), "uploads"))
+);
 /* ================= CREATE HTTP SERVER ================= */
 const server = http.createServer(app);
 

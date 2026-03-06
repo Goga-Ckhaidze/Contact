@@ -129,6 +129,7 @@ body {
   object-fit: cover;
 }
 
+/* The base style for the dot (position and size) */
 .friend-avatar-wrapper .online-dot {
   position: absolute;
   bottom: 0;
@@ -136,21 +137,20 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #00ff88;
-  box-shadow: 0 0 4px #00ff88;
   border: 2px solid var(--sidebar-color);
+  background: #888; /* Default to gray if something breaks */
 }
 
-.friend-avatar-wrapper .offline-dot {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+/* When the dot also has the "online" class */
+.friend-avatar-wrapper .online-dot.online {
+  background: #00ff88;
+  box-shadow: 0 0 4px #00ff88;
+}
+
+/* When the dot also has the "offline" class */
+.friend-avatar-wrapper .online-dot.offline {
   background: #888;
   box-shadow: none;
-  border: 2px solid var(--sidebar-color);
 }
 
 /* ================= REQUESTS ================= */
@@ -440,6 +440,48 @@ body {
   cursor: pointer;
 }
 
+/* Profile Button */
+.profile-btn2 {
+  background: var(--glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.profile-btn2:hover {
+  background: gray;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(88,101,242,0.3);
+}
+
+.sidebar-top {
+  position: relative;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.5);
+}
 /* ================= ANIMATIONS ================= */
 @keyframes messageSlide {
   from { opacity: 0; transform: translateY(20px) scale(0.9); }
