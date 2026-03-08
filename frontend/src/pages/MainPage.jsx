@@ -36,6 +36,10 @@ function MainPage() {
   const [activeFriendName, setActiveFriendName] = useState("");
   const [showRequests, setShowRequests] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [aiMessages, setAiMessages] = useState([{ role: 'bot', text: 'Hello! I am your assistant. How can I help with your contacts today?' }]);
+  const [aiInput, setAiInput] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const messagesEndRef = useRef(null);
   const socket = useRef(null);
@@ -104,6 +108,51 @@ function MainPage() {
       s.off("friend_request_rejected");
     };
   }, [user]);
+
+  // ================= AI CHATBOT LOGIC =================
+const handleAiSend = async () => {
+  if (!aiInput.trim() || isAiLoading) return;
+
+  const userMessage = aiInput;
+  setAiInput(""); // Clear input
+  setAiMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+  setIsAiLoading(true);
+
+  try {
+    const res = await axios.post("/api/ai/chat", {
+      message: userMessage,
+      userId: user?._id
+    });
+
+    setAiMessages((prev) => [
+      ...prev,
+      { role: "bot", text: res.data.text }
+    ]);
+
+    if (res.data.refreshData) {
+      loadFriends();
+      loadRequests();
+    }
+
+  } catch (err) {
+    console.error("AI Error:", err);
+
+    // --- Use backend text if available ---
+    const backendText = err.response?.data?.text;
+    setAiMessages((prev) => [
+      ...prev,
+      { role: "bot", text: backendText || "Sorry, I'm having trouble connecting to my brain right now." }
+    ]);
+  } finally {
+    setIsAiLoading(false);
+  }
+};
+
+  const aiMessagesEndRef = useRef(null);
+
+  useEffect(() => {
+  aiMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [aiMessages]);
 
   // ================= JOIN USER ROOM =================
   useEffect(() => {
@@ -422,6 +471,49 @@ function MainPage() {
           </button>
         </div>
       </main>
+
+   {/* AI Chatbot Tab */}
+<div className="chat-tab" onClick={() => setIsOpen(true)}>
+  {/* The CSS handles the icon and the text rotation */}
+  <span>ASSISTANT</span>
+</div>
+
+{/* AI Chat Drawer */}
+<div className={`chat-drawer ${isOpen ? 'open' : ''}`}>
+  <div className="drawer-header">
+    <h3>
+      <Users size={16} style={{ color: '#00f2ff' }} /> {/* Use your existing icon */}
+      App Assistant
+    </h3>
+    <button className="close-btn" onClick={() => setIsOpen(false)}>×</button>
+  </div>
+
+  <div className="ai-messages-container">
+    {aiMessages.map((msg, i) => (
+      <div key={i} className={`ai-bubble ${msg.role}`}>
+        {msg.text}
+      </div>
+    ))}
+    {isAiLoading && (
+      <div className="ai-bubble bot thinking">
+        Thinking...
+      </div>
+    )}
+      <div ref={aiMessagesEndRef} />
+  </div>
+
+  <div className="ai-input-wrapper">
+    <input 
+      value={aiInput} 
+      onChange={(e) => setAiInput(e.target.value)}
+      placeholder="Ask AI something..."
+      onKeyDown={(e) => e.key === 'Enter' && handleAiSend()}
+    />
+    <button onClick={handleAiSend} disabled={isAiLoading}>
+      <Send size={14} />
+    </button>
+  </div>
+</div>
     </div>
   );
 }

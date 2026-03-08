@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "../axiosInstance";
 import "./ProfilePage.css";
-import { User, Users, Edit2, Lock, Camera, Save, X, Info } from "lucide-react";
+import { User, Users, FileText, Key } from "lucide-react";
 
 function ProfilePage() {
   const [user, setUser] = useState(null);
@@ -13,6 +13,8 @@ function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("success");
+
+  const API_BASE_URL = "http://localhost:5000";
 
   useEffect(() => {
     loadProfile();
@@ -28,135 +30,198 @@ function ProfilePage() {
     } catch (err) {
       setMessage("Failed to load profile");
       setMessageType("error");
+      hideMessage();
     }
   };
 
+  const hideMessage = (timeout = 3000) => {
+    setTimeout(() => setMessage(""), timeout);
+  };
+
   const updateProfile = async () => {
+    if (!username.trim()) {
+      setMessage("Username cannot be empty");
+      setMessageType("error");
+      hideMessage();
+      return;
+    }
+
     try {
       const res = await axios.put("/api/users/update", { username, bio });
       setUser(res.data.user);
       setEditMode(false);
       setMessage("Profile updated successfully");
       setMessageType("success");
-      setTimeout(() => setMessage(""), 3000);
+      hideMessage();
     } catch (err) {
       setMessage(err.response?.data?.message || "Error updating profile");
       setMessageType("error");
+      hideMessage();
+    }
+  };
+
+  const changePassword = async () => {
+    if (!oldPassword || !newPassword) {
+      setMessage("Both password fields are required");
+      setMessageType("error");
+      hideMessage();
+      return;
+    }
+
+    try {
+      const res = await axios.put("/api/users/change-password", {
+        oldPassword,
+        newPassword,
+      });
+      setMessage(res.data.message || "Password changed successfully");
+      setMessageType("success");
+      setOldPassword("");
+      setNewPassword("");
+      hideMessage();
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Error changing password");
+      setMessageType("error");
+      hideMessage();
     }
   };
 
   const uploadAvatar = async (e) => {
     if (!e.target.files[0]) return;
-    const formData = new FormData();
-    formData.append("avatar", e.target.files[0]);
+
     try {
+      const formData = new FormData();
+      formData.append("avatar", e.target.files[0]);
+
       const res = await axios.post("/api/users/upload-avatar", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
       setUser({ ...user, avatar: res.data.avatar });
-    } catch (err) { console.error(err); }
+      setMessage("Avatar updated successfully");
+      setMessageType("success");
+      hideMessage();
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Failed to upload avatar");
+      setMessageType("error");
+      hideMessage();
+    }
   };
 
   if (!user) return null;
 
   return (
-    <div className="chat-container profile-page-wrapper">
-      <div className="profile-main-card">
-        
-        {/* HEADER SECTION - Same style as Chat Header */}
-        <div className="chat-header profile-header">
-          <User size={20} />
-          <h2>My Profile</h2>
-          <button className="edit-toggle-btn" onClick={() => setEditMode(!editMode)}>
-            {editMode ? <X size={18} /> : <Edit2 size={18} />}
-          </button>
+    <div className="profile-container">
+      <div className="profile-card">
+
+        {message && (
+          <div className={`profile-message ${messageType}`}>
+            {message}
+          </div>
+        )}
+
+        <div className="profile-avatar-section">
+          <img
+            src={user.avatar || "/default-avatar.png"}
+            alt="avatar"
+            className="profile-avatar"
+          />
+
+          <label className="custom-file-upload">
+            Choose Avatar
+            <input type="file" onChange={uploadAvatar} />
+          </label>
         </div>
 
-        <div className="profile-content">
-          {message && <div className={`profile-status-msg ${messageType}`}>{message}</div>}
+        {editMode ? (
+          <>
+            <input
+              className="profile-input"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
 
-          {/* AVATAR SECTION */}
-          <div className="profile-avatar-block">
-            <div className="avatar-preview">
-              <img src={user.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} alt="User" />
-              <label className="avatar-edit-label">
-                <Camera size={16} />
-                <input type="file" onChange={uploadAvatar} hidden />
-              </label>
-            </div>
-          </div>
+            <textarea
+  className="profile-textarea"
+  value={bio}
+  maxLength={150}
+  onChange={(e) => {
+    const value = e.target.value;
 
-          {/* NAME & BIO SECTION */}
-          <div className="profile-data-section">
-            <div className="section-title">
-              <User size={16} />
-              <h2>Identity</h2>
-            </div>
-            
-            {editMode ? (
-              <div className="edit-group">
-                <input 
-                  className="main-input" 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value)} 
-                  placeholder="Username"
-                />
-                <textarea 
-                  className="main-input profile-bio-input" 
-                  value={bio} 
-                  onChange={(e) => setBio(e.target.value)} 
-                  placeholder="Tell us about yourself..."
-                />
-                <button className="send-btn save-profile-btn" onClick={updateProfile}>
-                  <Save size={16} /> Save Identity
-                </button>
-              </div>
-            ) : (
-              <div className="display-group">
-                <h1 className="profile-name-display">{user.username}</h1>
-                <p className="profile-bio-display">{user.bio || "No bio set yet."}</p>
-              </div>
-            )}
-          </div>
+    if (value.length >= 150) {
+      setMessage("Too many letters (max 150)");
+      setMessageType("error");
+      hideMessage();
+    }
 
-          {/* FRIENDS STATS SECTION */}
-          <div className="profile-data-section stats-area">
-            <div className="section-title">
-              <Users size={16} />
-              <h2>Social</h2>
-            </div>
-            <div className="friend-stat-box">
-               <span className="stat-count">{friendCount}</span>
-               <span className="stat-label">{friendCount === 1 ? "Friend" : "Friends"} connected</span>
-            </div>
-          </div>
+    setBio(value);
+  }}
+/>
 
-          {/* SECURITY SECTION */}
-          <div className="profile-data-section security-area">
-            <div className="section-title">
-              <Lock size={16} />
-              <h2>Security</h2>
+<div className="bio-counter">
+  {bio.length}/150
+</div>
+
+            <button className="profile-btn save-btn" onClick={updateProfile}>
+              Save
+            </button>
+          </>
+        ) : (
+          <div className="profile-info">
+
+            <div className="info-box">
+              <User size={18} />
+              <span>{user.username}</span>
             </div>
-            <div className="security-inputs">
-              <input 
-                type="password" 
-                className="main-input" 
-                placeholder="Old Password" 
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-              />
-              <input 
-                type="password" 
-                className="main-input" 
-                placeholder="New Password" 
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-              <button className="requests-toggle password-update-btn">
-                Update Password
-              </button>
+
+            <div className="info-box">
+              <Users size={18} />
+              <span>
+                {friendCount} {friendCount === 1 ? "friend" : "friends"}
+              </span>
             </div>
+
+            <div className="info-box bio-box">
+              <FileText size={18} />
+              <span>{user.bio || "No bio yet."}</span>
+            </div>
+
           </div>
+        )}
+
+        <button
+          className="profile-btn edit-btn"
+          onClick={() => setEditMode(!editMode)}
+        >
+          {editMode ? "Cancel" : "Edit Profile"}
+        </button>
+
+        <div className="password-section">
+          <h3>
+            <Key size={16} /> Change Password
+          </h3>
+
+          <input
+            type="password"
+            placeholder="Old password"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+            className="profile-input"
+          />
+
+          <input
+            type="password"
+            placeholder="New password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="profile-input"
+          />
+
+          <button
+            className="profile-btn password-btn"
+            onClick={changePassword}
+          >
+            Change
+          </button>
         </div>
       </div>
     </div>
