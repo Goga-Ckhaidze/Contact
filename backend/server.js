@@ -12,6 +12,7 @@ import contactRoutes from "./routes/contactRoutes.js";
 import Message from "./models/Message.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import path from "path";
+import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.use(
   cors({ origin: CLIENT_URL, credentials: true }),
   express.static(path.join(path.resolve(), "uploads"))
 );
+app.use("/api/ai", aiRoutes);
 /* ================= CREATE HTTP SERVER ================= */
 const server = http.createServer(app);
 
