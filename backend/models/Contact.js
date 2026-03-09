@@ -21,4 +21,11 @@ const contactSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/* ================= THE FIX =================
+  This ensures that there can only be ONE document for a 
+  specific sender/receiver pair. If you try to create a duplicate, 
+  MongoDB will reject it immediately.
+*/
+contactSchema.index({ sender: 1, receiver: 1 }, { unique: true });
+
 export default mongoose.model("Contact", contactSchema);

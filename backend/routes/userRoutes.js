@@ -8,7 +8,7 @@ import {
   updateProfile,
   changePassword,
   uploadAvatar,
-  getFriendCount,
+  // getFriendCount was removed from here
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -23,6 +23,8 @@ router.post(
   upload.single("avatar"),
   uploadAvatar
 );
-router.get("/friend-count", authMiddleware, getFriendCount);
+
+// Note: I removed the /friend-count route from here. 
+// It is now in contactRoutes.js as /api/contacts/count
 
 export default router;
