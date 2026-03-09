@@ -704,3 +704,11 @@ body {
   letter-spacing: 1px;
   font-weight: 600;
 }
+
+.AddButton {
+  width: 50%!important;
+}
+
+.CancelButton {
+  width: 50%!important;
+}

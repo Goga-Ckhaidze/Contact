@@ -5,7 +5,6 @@ import io from "socket.io-client";
 import axios from "../axiosInstance.js";
 import { LogOut, User, UserPlus, Send, Users } from "lucide-react";
 
-// ================= Helper for "time ago" =================
 const formatTimeAgo = (date) => {
   if (!date) return "";
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -20,7 +19,7 @@ const formatTimeAgo = (date) => {
 function MainPage() {
   const navigate = useNavigate();
 
-  // ================= STATES =================
+  // STATES
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState("");
   const [allChats, setAllChats] = useState({});
@@ -43,14 +42,15 @@ function MainPage() {
 
   const messagesEndRef = useRef(null);
   const socket = useRef(null);
-
-  // ================= ACTIVE CHAT REF =================
+  const aiMessagesEndRef = useRef(null);
+  
   const activeChatRef = useRef(activeChatId);
+
   useEffect(() => {
     activeChatRef.current = activeChatId;
   }, [activeChatId]);
 
-  // ================= AUTH CHECK =================
+  // AUTH CHECK
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -61,19 +61,26 @@ function MainPage() {
       }
     };
     checkAuth();
-  }, []);
+  }, [navigate]);
 
-  // ================= SOCKET INIT =================
+  // SOCKET INIT
   useEffect(() => {
     if (!socket.current) {
-      socket.current = io(import.meta.env.VITE_API_URL, { withCredentials: true });
+      socket.current = io(import.meta.env.VITE_API_URL, { 
+        withCredentials: true,
+        reconnection: true, 
+        reconnectionAttempts: 5
+      });
     }
+
     const s = socket.current;
 
-    s.on("connect", () => console.log("Connected:", s.id));
-    s.on("online_users", (users) => setOnlineUsers(users));
+    if (user?._id) {
+      s.emit("join_user_room", user._id);
+      console.log("Socket: Joined user room", user._id);
+    }
 
-    s.on("receive_message", (data) => {
+    const handleIncomingMessage = (data) => {
       setAllChats((prev) => ({
         ...prev,
         [data.chatId]: [...(prev[data.chatId] || []), data],
@@ -90,100 +97,136 @@ function MainPage() {
         }
         return { ...prev, [data.chatId]: (prev[data.chatId] || 0) + 1 };
       });
-    });
+    };
 
-    s.on("friend_request_received", () => loadRequests());
-    s.on("friend_request_accepted", () => {
+    const handleFriendUpdate = () => {
       loadFriends();
       loadRequests();
       loadSentRequests();
+    };
+
+    s.on("connect", () => {
+      if (user?._id) s.emit("join_user_room", user._id);
     });
+
+    s.on("online_users", (users) => setOnlineUsers(users));
+    s.on("receive_message", handleIncomingMessage);
+    s.on("friend_request_received", () => loadRequests());
+    s.on("friend_request_accepted", handleFriendUpdate);
     s.on("friend_request_rejected", () => loadSentRequests());
+    s.on("friend_request_canceled", () => {
+      loadRequests();
+      loadSentRequests();
+    });
+    s.on("friend_deleted", () => {
+    console.log("Socket: You were removed by a friend");
+    loadFriends(); // Refresh the list so they disappear!
+  });
 
     return () => {
-      s.off("receive_message");
+      s.off("connect");
       s.off("online_users");
+      s.off("receive_message", handleIncomingMessage);
       s.off("friend_request_received");
-      s.off("friend_request_accepted");
+      s.off("friend_request_accepted", handleFriendUpdate);
       s.off("friend_request_rejected");
+      s.off("friend_request_canceled");
+      s.off("friend_deleted");
     };
-  }, [user]);
+  }, [user]); 
 
-  // ================= AI CHATBOT LOGIC =================
-const handleAiSend = async () => {
-  if (!aiInput.trim() || isAiLoading) return;
+  // AI CHATBOT LOGIC
+  const handleAiSend = async () => {
+    if (!aiInput.trim() || isAiLoading) return;
+    const userMessage = aiInput;
+    setAiInput("");
+    setAiMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+    setIsAiLoading(true);
 
-  const userMessage = aiInput;
-  setAiInput(""); // Clear input
-  setAiMessages((prev) => [...prev, { role: "user", text: userMessage }]);
-  setIsAiLoading(true);
+    try {
+      const res = await axios.post("/api/ai/chat", {
+        message: userMessage,
+        userId: user?._id
+      });
+      setAiMessages((prev) => [...prev, { role: "bot", text: res.data.text }]);
+      if (res.data.refreshData) {
+        loadFriends();
+        loadRequests();
+      }
+    } catch (err) {
+      const backendText = err.response?.data?.text;
+      setAiMessages((prev) => [
+        ...prev,
+        { role: "bot", text: backendText || "Sorry, I'm having trouble connecting to my brain right now." }
+      ]);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
-  try {
-    const res = await axios.post("/api/ai/chat", {
-      message: userMessage,
-      userId: user?._id
-    });
+  useEffect(() => {
+    aiMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [aiMessages]);
 
-    setAiMessages((prev) => [
-      ...prev,
-      { role: "bot", text: res.data.text }
-    ]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    if (res.data.refreshData) {
+  // LOAD DATA
+  const loadFriends = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get("/api/contacts/friends");
+      setFriends(res.data);
+      if (socket.current) {
+        res.data.forEach((friend) => {
+          socket.current.emit("join_room", friend._id);
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadRequests = async () => {
+    if (!user) return;
+    const res = await axios.get("/api/contacts/pending");
+    setRequests(res.data);
+  };
+
+  const loadSentRequests = async () => {
+    if (!user) return;
+    const res = await axios.get("/api/contacts/sent");
+    setSentRequests(res.data.map((r) => r.receiver._id));
+  };
+
+  useEffect(() => {
+    if (user) {
       loadFriends();
       loadRequests();
+      loadSentRequests();
     }
-
-  } catch (err) {
-    console.error("AI Error:", err);
-
-    // --- Use backend text if available ---
-    const backendText = err.response?.data?.text;
-    setAiMessages((prev) => [
-      ...prev,
-      { role: "bot", text: backendText || "Sorry, I'm having trouble connecting to my brain right now." }
-    ]);
-  } finally {
-    setIsAiLoading(false);
-  }
-};
-
-  const aiMessagesEndRef = useRef(null);
-
-  useEffect(() => {
-  aiMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [aiMessages]);
-
-  // ================= JOIN USER ROOM =================
-  useEffect(() => {
-    if (!user || !socket.current) return;
-    socket.current.emit("join_user_room", user._id);
   }, [user]);
 
-  // ================= CHAT FUNCTIONS =================
+  // ACTIONS
   const joinChat = async (chatId) => {
     if (!user) return;
-
     try {
       const res = await axios.get(`/api/messages/${chatId}`);
       setMessages(res.data);
     } catch (err) {
       console.error(err);
     }
-
     setActiveChatId(chatId);
     socket.current.emit("join_room", chatId);
-
     setUnreadCounts((prev) => ({ ...prev, [chatId]: 0 }));
   };
 
   const sendMessage = async () => {
     if (!message.trim() || !activeChatId || !user) return;
     if (isSending) return;
-
     setIsSending(true);
     const data = { chatId: activeChatId, sender: user._id, message };
-
     try {
       socket.current.emit("send_message", data);
       setMessage("");
@@ -194,11 +237,6 @@ const handleAiSend = async () => {
     }
   };
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // ================= SEARCH =================
   const handleSearch = async () => {
     if (!searchName.trim()) return;
     try {
@@ -209,7 +247,6 @@ const handleAiSend = async () => {
     }
   };
 
-  // ================= FRIEND REQUESTS =================
   const sendFriendRequest = async (receiverId) => {
     try {
       const res = await axios.post("/api/contacts/request", { receiverId });
@@ -219,6 +256,7 @@ const handleAiSend = async () => {
       alert(err.response?.data?.message || "Error sending request");
     }
   };
+
   const acceptRequest = async (requestId) => {
     try {
       await axios.post("/api/contacts/accept", { requestId });
@@ -229,6 +267,7 @@ const handleAiSend = async () => {
       console.error(err);
     }
   };
+
   const rejectRequest = async (requestId) => {
     try {
       await axios.post("/api/contacts/reject", { requestId });
@@ -238,41 +277,24 @@ const handleAiSend = async () => {
     }
   };
 
-  // ================= LOAD DATA =================
-  const loadFriends = async () => {
-    if (!user) return;
+  const deleteFriend = async (contactId) => {
     try {
-      const res = await axios.get("/api/contacts/friends");
-      setFriends(res.data);
+      await axios.delete(`/api/contacts/delete/${contactId}`);
+      loadFriends();
+    } catch (err) {
+      console.error("Delete friend error:", err);
+    }
+  };
 
-      if (socket.current) {
-        res.data.forEach((friend) => {
-          socket.current.emit("join_room", friend._id);
-        });
-      }
+  const cancelFriendRequest = async (receiverId) => {
+    try {
+      await axios.post("/api/contacts/cancel", { receiverId });
+      loadSentRequests();
     } catch (err) {
       console.error(err);
     }
   };
-  const loadRequests = async () => {
-    if (!user) return;
-    const res = await axios.get("/api/contacts/pending");
-    setRequests(res.data);
-  };
-  const loadSentRequests = async () => {
-    if (!user) return;
-    const res = await axios.get("/api/contacts/sent");
-    setSentRequests(res.data.map((r) => r.receiver._id));
-  };
-  useEffect(() => {
-    if (user) {
-      loadFriends();
-      loadRequests();
-      loadSentRequests();
-    }
-  }, [user]);
 
-  // ================= LOGOUT =================
   const handleLogout = async () => {
     try {
       await axios.post("/api/auth/logout");
@@ -283,7 +305,6 @@ const handleAiSend = async () => {
     }
   };
 
-  // ================= UI =================
   return (
     <div className="chat-container">
       <aside className="sidebar">
@@ -292,10 +313,10 @@ const handleAiSend = async () => {
             <LogOut size={18} />
             <span>Logout</span>
           </button>
-<button className="profile-btn2" onClick={() => navigate("/profile")}>
-  <User size={18} />
-  <span>Profile</span>
-</button>
+          <button className="profile-btn2" onClick={() => navigate("/profile")}>
+            <User size={18} />
+            <span>Profile</span>
+          </button>
         </div>
 
         {/* FRIENDS */}
@@ -306,8 +327,7 @@ const handleAiSend = async () => {
           </div>
           <div className="friends-list">
             {friends.map((friend) => {
-              const friendUser =
-                friend.sender._id === user._id ? friend.receiver : friend.sender;
+              const friendUser = friend.sender._id === user._id ? friend.receiver : friend.sender;
               return (
                 <button
                   key={friend._id}
@@ -323,14 +343,25 @@ const handleAiSend = async () => {
                       alt={friendUser.username}
                     />
                     <span
-  className={`online-dot ${
-    onlineUsers.some(id => String(id) === String(friendUser._id)) 
-      ? "online" 
-      : "offline"
-  }`}
-/>
+                      className={`online-dot ${
+                        onlineUsers.some(id => String(id) === String(friendUser._id)) 
+                          ? "online" 
+                          : "offline"
+                      }`}
+                    />
                   </div>
-                  <span className="friend-username">{friendUser.username}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                    <span className="friend-username">{friendUser.username}</span>
+                    <button
+                      className="delete-friend-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFriend(friend._id);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                   {unreadCounts[friend._id] > 0 && (
                     <span className="unread-badge">{unreadCounts[friend._id]}</span>
                   )}
@@ -393,15 +424,29 @@ const handleAiSend = async () => {
                       src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
                       alt={userObj.username}
                     />
-                    <span className="online-dot offline" />
+                    <span
+  className={`online-dot ${
+    onlineUsers.some(id => String(id) === String(userObj._id)) 
+      ? "online" 
+      : "offline"
+  }`}
+/>
                   </div>
                   <span className="friend-username">{userObj.username}</span>
                   {isFriend ? null : requestReceived ? (
                     <button onClick={() => acceptRequest(requestReceived._id)}>Accept</button>
                   ) : alreadySent ? (
-                    <button disabled>Sent</button>
+                    <button
+                      className="CancelButton"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelFriendRequest(userObj._id);
+                      }}
+                    >
+                      Cancel
+                    </button>
                   ) : (
-                    <button onClick={() => sendFriendRequest(userObj._id)}>Add</button>
+                    <button className="AddButton" onClick={() => sendFriendRequest(userObj._id)}>Add</button>
                   )}
                 </button>
               );
@@ -472,48 +517,47 @@ const handleAiSend = async () => {
         </div>
       </main>
 
-   {/* AI Chatbot Tab */}
-<div className="chat-tab" onClick={() => setIsOpen(true)}>
-  {/* The CSS handles the icon and the text rotation */}
-  <span>ASSISTANT</span>
-</div>
-
-{/* AI Chat Drawer */}
-<div className={`chat-drawer ${isOpen ? 'open' : ''}`}>
-  <div className="drawer-header">
-    <h3>
-      <Users size={16} style={{ color: '#00f2ff' }} /> {/* Use your existing icon */}
-      App Assistant
-    </h3>
-    <button className="close-btn" onClick={() => setIsOpen(false)}>×</button>
-  </div>
-
-  <div className="ai-messages-container">
-    {aiMessages.map((msg, i) => (
-      <div key={i} className={`ai-bubble ${msg.role}`}>
-        {msg.text}
+      {/* AI Chatbot Tab */}
+      <div className="chat-tab" onClick={() => setIsOpen(true)}>
+        <span>ASSISTANT</span>
       </div>
-    ))}
-    {isAiLoading && (
-      <div className="ai-bubble bot thinking">
-        Thinking...
-      </div>
-    )}
-      <div ref={aiMessagesEndRef} />
-  </div>
 
-  <div className="ai-input-wrapper">
-    <input 
-      value={aiInput} 
-      onChange={(e) => setAiInput(e.target.value)}
-      placeholder="Ask AI something..."
-      onKeyDown={(e) => e.key === 'Enter' && handleAiSend()}
-    />
-    <button onClick={handleAiSend} disabled={isAiLoading}>
-      <Send size={14} />
-    </button>
-  </div>
-</div>
+      {/* AI Chat Drawer */}
+      <div className={`chat-drawer ${isOpen ? 'open' : ''}`}>
+        <div className="drawer-header">
+          <h3>
+            <Users size={16} style={{ color: '#00f2ff' }} />
+            App Assistant
+          </h3>
+          <button className="close-btn" onClick={() => setIsOpen(false)}>×</button>
+        </div>
+
+        <div className="ai-messages-container">
+          {aiMessages.map((msg, i) => (
+            <div key={i} className={`ai-bubble ${msg.role}`}>
+              {msg.text}
+            </div>
+          ))}
+          {isAiLoading && (
+            <div className="ai-bubble bot thinking">
+              Thinking...
+            </div>
+          )}
+            <div ref={aiMessagesEndRef} />
+        </div>
+
+        <div className="ai-input-wrapper">
+          <input 
+            value={aiInput} 
+            onChange={(e) => setAiInput(e.target.value)}
+            placeholder="Ask AI something..."
+            onKeyDown={(e) => e.key === 'Enter' && handleAiSend()}
+          />
+          <button onClick={handleAiSend} disabled={isAiLoading}>
+            <Send size={14} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
