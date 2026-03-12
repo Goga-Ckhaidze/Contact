@@ -79,7 +79,6 @@ function MainPage() {
 
     if (user?._id) {
       s.emit("join_user_room", user._id);
-      console.log("Socket: Joined user room", user._id);
     }
 
     const handleIncomingMessage = (data) => {
@@ -121,7 +120,6 @@ function MainPage() {
       loadSentRequests();
     });
     s.on("friend_deleted", () => {
-    console.log("Socket: You were removed by a friend");
     loadFriends(); // Refresh the list so they disappear!
   });
 

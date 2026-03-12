@@ -88,7 +88,6 @@ export const stripeWebhook = async (req, res) => {
         chatbotSubscriptionExpires: expiresAt
       });
 
-      console.log(`Verified sub for user ${userId} until ${expiresAt}`);
     } catch (err) {
       console.error("DB Update Error:", err);
     }

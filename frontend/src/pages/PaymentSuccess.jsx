@@ -18,7 +18,6 @@ const PaymentSuccess = () => {
           { sessionId },
           { withCredentials: true }
         );
-        console.log("Subscription verified:", data);
       } catch (err) {
         console.error("Verification failed:", err);
       }

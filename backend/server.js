@@ -18,8 +18,6 @@ import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 
 dotenv.config();
 
-console.log("MAIL_USER:", process.env.MAIL_USER);
-console.log("MAIL_PASS:", process.env.MAIL_PASS);
 
 const app = express();
 /* ================= CREATE HTTP SERVER FIRST ================= */
@@ -85,7 +83,6 @@ app.use(
 let onlineUsers = new Map(); // key = userId, value = socket.id
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 
   // Join User Room
   socket.on("join_user_room", (userId) => {
@@ -115,7 +112,6 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
     for (let [userId, socketId] of onlineUsers.entries()) {
       if (socketId === socket.id) {
         onlineUsers.delete(userId);

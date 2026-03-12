@@ -51,7 +51,6 @@ const handleSubmit = async e => {
         <ReCAPTCHA
         sitekey="6Ld8EHosAAAAAIGPfQIeXXqGt5oKLxZpbzymCDQ8"
         onChange={token => {
-          console.log("Captcha token:", token);
           setCaptchaToken(token);
         }}
         onExpired={() => setCaptchaToken("")}

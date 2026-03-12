@@ -14,7 +14,7 @@ function ProfilePage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("success");
 
-  const API_BASE_URL = "http://localhost:5000";
+  const API_BASE_URL = "https://contact-qia9.onrender.com";
 
   useEffect(() => {
     loadProfile();

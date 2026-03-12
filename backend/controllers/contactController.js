@@ -132,7 +132,6 @@ export const deleteFriend = async (req, res) => {
     // 4. Emit the event to the other person's specific room
     if (req.io) {
       req.io.to(recipientId).emit("friend_deleted");
-      console.log(`Socket: Notifying user ${recipientId} of deletion`);
     }
 
     res.json({ message: "Friend removed successfully" });

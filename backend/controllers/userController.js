@@ -71,7 +71,7 @@ export const uploadAvatar = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const user = await User.findById(req.user._id);
 
-    user.avatar = `${process.env.SERVER_URL || "http://localhost:5000"}/uploads/${req.file.filename}`;
+    user.avatar = `${process.env.SERVER_URL || "https://contact-qia9.onrender.com"}/uploads/${req.file.filename}`;
     await user.save();
 
     res.json({ avatar: user.avatar });
