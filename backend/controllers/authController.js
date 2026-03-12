@@ -95,13 +95,13 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    // ✅ send token in httpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: "Lax", // or "None" if using https + cross origin
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+// ✅ Correct settings for Vercel + Render
+res.cookie("token", token, {
+  httpOnly: true,
+  sameSite: "none", // Required for cross-site (Vercel to Render)
+  secure: true,      // Must be true if sameSite is "none"
+  maxAge: 7 * 24 * 60 * 60 * 1000, 
+});
 
     res.json({ message: "Login successful", user: { id: user._id, username: user.username } });
   } catch (err) {
