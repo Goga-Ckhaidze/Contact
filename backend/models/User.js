@@ -7,11 +7,13 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 3,
     },
+
     email: {
       type: String,
       required: true,
       unique: true,
     },
+
     password: {
       type: String,
       required: true,
@@ -29,10 +31,25 @@ const userSchema = new mongoose.Schema(
       default: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
     },
 
+    /* ================= CHATBOT SUBSCRIPTION ================= */
+
+    chatbotSubscriptionActive: {
+      type: Boolean,
+      default: false,
+    },
+
+    chatbotSubscriptionExpires: {
+      type: Date,
+      default: null,
+    },
+
+    /* ================= ACCOUNT ================= */
+
     isVerified: {
       type: Boolean,
       default: false,
     },
+
     verificationCode: String,
     verificationCodeExpires: Date,
   },

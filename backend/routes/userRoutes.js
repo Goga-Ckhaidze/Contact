@@ -5,6 +5,7 @@ import upload from "../config/multer.js";
 import {
   searchUsers,
   getProfile,
+  getUserProfile,
   updateProfile,
   changePassword,
   uploadAvatar,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.get("/search", authMiddleware, searchUsers);
 router.get("/me", authMiddleware, getProfile);
+router.get("/:id", authMiddleware, getUserProfile);
 router.put("/update", authMiddleware, updateProfile);
 router.put("/change-password", authMiddleware, changePassword);
 router.post(

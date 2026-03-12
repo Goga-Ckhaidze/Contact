@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import Contact from "../models/Contact.js";
+import mongoose from "mongoose";
 
 /* ================= SEARCH USERS ================= */
 export const searchUsers = async (req, res) => {
@@ -74,6 +76,36 @@ export const uploadAvatar = async (req, res) => {
 
     res.json({ avatar: user.avatar });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const user = await User.findById(id).select("username bio avatar");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Only accepted friends
+    const friendCount = await Contact.countDocuments({
+      $or: [{ sender: user._id }, { receiver: user._id }],
+      status: "accepted",
+    });
+
+    res.json({
+      _id: user._id,
+      username: user.username,
+      bio: user.bio,
+      avatar: user.avatar,
+      friendCount,
+    });
+  } catch (err) {
+    console.error("Profile fetch error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

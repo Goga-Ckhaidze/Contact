@@ -7,7 +7,6 @@ import http from "http";
 import { Server } from "socket.io";
 import cookieParser from "cookie-parser";
 import path from "path";
-
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -15,6 +14,7 @@ import contactRoutes from "./routes/contactRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import Message from "./models/Message.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 
 dotenv.config();
 
@@ -53,6 +53,9 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
+
+app.use("/api/subscription", subscriptionRoutes);
+
 app.use(express.json());
 
 /* ================= ATTACH IO TO REQ (THE FIX) ================= */
@@ -70,6 +73,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/ai", aiRoutes);
+
 
 app.use(
   "/uploads",
