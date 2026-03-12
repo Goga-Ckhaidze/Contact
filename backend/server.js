@@ -22,7 +22,7 @@ dotenv.config();
 const app = express();
 /* ================= CREATE HTTP SERVER FIRST ================= */
 const server = http.createServer(app);
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const CLIENT_URL = process.env.CLIENT_URL || "https://contact-rho-hazel.vercel.app";
 
 /* ================= SOCKET.IO ================= */
 export const io = new Server(server, {
