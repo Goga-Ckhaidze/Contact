@@ -4,6 +4,7 @@ import "./MainPage.css";
 import io from "socket.io-client";
 import axios from "../axiosInstance.js";
 import { LogOut, User, UserPlus, Send, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const formatTimeAgo = (date) => {
   if (!date) return "";
@@ -39,6 +40,7 @@ function MainPage() {
   const [aiMessages, setAiMessages] = useState([{ role: 'bot', text: 'Hello! I am your assistant. How can I help with your contacts today?' }]);
   const [aiInput, setAiInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [viewProfile, setViewProfile] = useState(null);
 
   const messagesEndRef = useRef(null);
   const socket = useRef(null);
@@ -143,17 +145,21 @@ function MainPage() {
     setAiMessages((prev) => [...prev, { role: "user", text: userMessage }]);
     setIsAiLoading(true);
 
-    try {
-      const res = await axios.post("/api/ai/chat", {
-        message: userMessage,
-        userId: user?._id
-      });
-      setAiMessages((prev) => [...prev, { role: "bot", text: res.data.text }]);
-      if (res.data.refreshData) {
-        loadFriends();
-        loadRequests();
-      }
-    } catch (err) {
+try {
+    const res = await axios.post("/api/ai/chat", {
+      message: userMessage,
+      userId: user?._id
+    });
+    
+    setAiMessages((prev) => [...prev, { role: "bot", text: res.data.text }]);
+
+    if (res.data.refreshData) {
+      // THE FIX: Refresh everything so your UI stays in sync
+      loadFriends();
+      loadRequests();
+      loadSentRequests(); // 👈 Don't forget this one!
+    }
+  } catch (err) {
       const backendText = err.response?.data?.text;
       setAiMessages((prev) => [
         ...prev,
@@ -384,10 +390,15 @@ function MainPage() {
               {requests.length === 0 && <p>No pending requests</p>}
               {requests.map((req) => (
                 <div key={req._id} className="modal-request-item">
-                  <span>{req.sender?.username}</span>
+                  <Link 
+  to={`/profile/${req.sender._id}`} 
+  className="request-username"
+>
+  {req.sender?.username}
+</Link>
                   <div>
-                    <button onClick={() => acceptRequest(req._id)}>Accept</button>
-                    <button onClick={() => rejectRequest(req._id)}>Reject</button>
+                    <button className="AcceptFriendRequest" onClick={() => acceptRequest(req._id)}>Accept</button>
+                    <button className="RejectFriendRequest" onClick={() => rejectRequest(req._id)}>Reject</button>
                   </div>
                 </div>
               ))}
@@ -457,15 +468,31 @@ function MainPage() {
 
       <main className="chat-main">
         <div className="chat-header">
-          {activeFriendName ? (
-            <>
-              <User size={18} />
-              <h2>{activeFriendName}</h2>
-            </>
-          ) : (
-            <h2>Select a chat</h2>
-          )}
-        </div>
+  {activeFriendName ? (
+    <>
+      <User size={18} />
+      <span
+        className="friend-name-link"
+        style={{ cursor: 'pointer' }}
+        onClick={() => {
+          // Find the friend object to get their _id
+          const friendObj = friends.find(
+            (f) => (f.sender._id === user._id ? f.receiver._id : f.sender._id) && 
+                   (f.sender.username === activeFriendName || f.receiver.username === activeFriendName)
+          );
+          if (friendObj) {
+            const friendId = friendObj.sender._id === user._id ? friendObj.receiver._id : friendObj.sender._id;
+            navigate(`/profile/${friendId}`);
+          }
+        }}
+      >
+        {activeFriendName}
+      </span>
+    </>
+  ) : (
+    <h2>Select a chat</h2>
+  )}
+</div>
 
         <div className="chat-messages">
           {messages.map((msg, i) => {
@@ -518,9 +545,28 @@ function MainPage() {
       </main>
 
       {/* AI Chatbot Tab */}
-      <div className="chat-tab" onClick={() => setIsOpen(true)}>
-        <span>ASSISTANT</span>
-      </div>
+<div
+  className="chat-tab"
+  onClick={async () => {
+    try {
+      const res = await axios.get("/api/subscription/status");
+      const { active, expiresAt } = res.data;
+
+      if (!active || (expiresAt && new Date(expiresAt) < new Date())) {
+        alert("You need to buy the AI Assistant first.");
+        navigate("/buy-chatbot");
+        return;
+      }
+
+      setIsOpen(true); // Subscription is active, open AI drawer
+    } catch (err) {
+      console.error(err);
+      alert("Error checking subscription. Try again later.");
+    }
+  }}
+>
+  <span>ASSISTANT</span>
+</div>
 
       {/* AI Chat Drawer */}
       <div className={`chat-drawer ${isOpen ? 'open' : ''}`}>

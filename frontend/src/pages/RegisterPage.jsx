@@ -13,6 +13,8 @@ export default function RegisterPage() {
 
   const navigate = useNavigate();
 
+  const handleNavigate = () => navigate("/login");
+
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 const handleSubmit = async e => {
   e.preventDefault();
@@ -56,6 +58,9 @@ const handleSubmit = async e => {
         />
         <button style={{ marginTop: "10px" }} type="submit" disabled={loading}>{loading ? "Sending OTP..." : "Register"}</button>
         {message && <p className="message">{message}</p>}
+                <p className="auth-switch" onClick={handleNavigate}>
+  Have an account? Login
+</p>
       </form>
     </div>
   );
