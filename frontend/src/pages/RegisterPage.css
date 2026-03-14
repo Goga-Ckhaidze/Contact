@@ -2,7 +2,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px;
   background-color: #f5f6fa;
 }
 
@@ -13,7 +15,8 @@
   box-shadow: 0 0 15px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
-  width: 350px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .register-form h2 {
@@ -28,21 +31,31 @@
   border-radius: 8px;
   border: 1px solid #ccc;
   font-size: 14px;
+  width: 100%;
 }
 
 .register-form button {
   padding: 12px;
   border-radius: 8px;
   border: none;
-  background-color: #4cd137;
-  color: #fff;
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.2s;
+  width: 100%;
+  background-color: #4cd137;
+  color: #fff;
 }
 
 .register-form button:hover {
   background-color: #44bd32;
+}
+
+.register-form button.login-btn {
+  background-color: #0097e6;
+}
+
+.register-form button.login-btn:hover {
+  background-color: #0984e3;
 }
 
 .message {
@@ -51,6 +64,7 @@
   color: #e84118;
   font-weight: bold;
 }
+
 .demo-alert {
   margin-top: 15px;
   padding: 12px;
@@ -66,18 +80,9 @@
   text-decoration: underline;
 }
 
-.register-form button.login-btn {
-  background-color: #0097e6;
-}
-
-.register-form button.login-btn:hover {
-  background-color: #0984e3;
-}
-
-
 .auth-switch {
   text-align: center;
-  margin: 10px 0 0 0;
+  margin-top: 10px;
   color: #0097e6;
   font-size: 14px;
   cursor: pointer;
@@ -87,4 +92,43 @@
 .auth-switch:hover {
   color: #0984e3;
   text-decoration: underline;
+}
+
+/* reCAPTCHA centering */
+.g-recaptcha {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 480px) {
+  .register-form {
+    padding: 25px 20px;
+  }
+
+  .register-form h2 {
+    font-size: 22px;
+  }
+
+  .register-form input {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .register-form button {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .auth-switch {
+    font-size: 13px;
+  }
+}
+
+/* TABLET RESPONSIVE */
+@media (max-width: 768px) {
+  .register-form {
+    max-width: 350px;
+  }
 }

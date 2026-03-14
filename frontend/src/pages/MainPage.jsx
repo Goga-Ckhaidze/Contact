@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./MainPage.css";
 import io from "socket.io-client";
 import axios from "../axiosInstance.js";
-import { LogOut, User, UserPlus, Send, Users } from "lucide-react";
+import { LogOut, User, UserPlus, Send, Users, Trash } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const formatTimeAgo = (date) => {
@@ -41,6 +41,7 @@ function MainPage() {
   const [aiInput, setAiInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [viewProfile, setViewProfile] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef = useRef(null);
   const socket = useRef(null);
@@ -213,18 +214,21 @@ try {
   }, [user]);
 
   // ACTIONS
-  const joinChat = async (chatId) => {
-    if (!user) return;
-    try {
-      const res = await axios.get(`/api/messages/${chatId}`);
-      setMessages(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-    setActiveChatId(chatId);
-    socket.current.emit("join_room", chatId);
-    setUnreadCounts((prev) => ({ ...prev, [chatId]: 0 }));
-  };
+const joinChat = async (chatId) => {
+  if (!user) return;
+
+  try {
+    const res = await axios.get(`/api/messages/${chatId}`);
+    setMessages(res.data);
+  } catch (err) {
+    console.error(err);
+  }
+
+  setActiveChatId(chatId);
+  setSidebarOpen(false); // close on mobile
+  socket.current.emit("join_room", chatId);
+  setUnreadCounts((prev) => ({ ...prev, [chatId]: 0 }));
+};
 
   const sendMessage = async () => {
     if (!message.trim() || !activeChatId || !user) return;
@@ -311,7 +315,17 @@ try {
 
   return (
     <div className="chat-container">
-      <aside className="sidebar">
+      {sidebarOpen && (
+  <div
+    className="sidebar-overlay"
+    onClick={() => setSidebarOpen(false)}
+  />
+)}
+
+<aside
+  className={`sidebar ${sidebarOpen ? "open" : ""}`}
+  onClick={(e) => e.stopPropagation()}
+>
         <div className="sidebar-top">
           <button className="logout-btn" onClick={handleLogout}>
             <LogOut size={18} />
@@ -333,7 +347,7 @@ try {
             {friends.map((friend) => {
               const friendUser = friend.sender._id === user._id ? friend.receiver : friend.sender;
               return (
-                <button
+                <div
                   key={friend._id}
                   className={`friend-item ${activeChatId === friend._id ? "active" : ""}`}
                   onClick={() => {
@@ -363,13 +377,13 @@ try {
                         deleteFriend(friend._id);
                       }}
                     >
-                      ✕
+                      <Trash size={16} />
                     </button>
                   </div>
                   {unreadCounts[friend._id] > 0 && (
                     <span className="unread-badge">{unreadCounts[friend._id]}</span>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -466,6 +480,14 @@ try {
 
       <main className="chat-main">
         <div className="chat-header">
+
+          <button
+  className="menu-toggle"
+  onClick={() => setSidebarOpen(true)}
+>
+  ☰
+</button>
+
   {activeFriendName ? (
     <>
       <User size={18} />
@@ -492,32 +514,43 @@ try {
   )}
 </div>
 
-        <div className="chat-messages">
-          {messages.map((msg, i) => {
-            const isMe = msg.sender === user?._id;
-            const senderName = isMe ? "You" : activeFriendName || "Friend";
-            return (
-              <div key={i} className={`message-wrapper ${isMe ? "sent" : "received"}`}>
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  alt="avatar"
-                  className="message-avatar"
-                />
-                <div className="message-content">
-                  <div className="message-info">
-                    <span className="sender-name">{senderName}</span>
-                    <span className="message-time">{formatTimeAgo(msg.createdAt)}</span>
-                  </div>
-                  <div className="message-bubble">
-                    <p>{msg.message}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
+       {!activeChatId ? (
+  <div className="empty-chat">
+    <div className="empty-chat-content">
+      💬
+      <h2>Choose a chat</h2>
+      <p>Select a friend from the sidebar to start messaging</p>
+    </div>
+  </div>
+) : (
+  <div className="chat-messages">
+    {messages.map((msg, i) => {
+      const isMe = msg.sender === user?._id;
+      const senderName = isMe ? "You" : activeFriendName || "Friend";
+      return (
+        <div key={i} className={`message-wrapper ${isMe ? "sent" : "received"}`}>
+          <img
+            src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+            alt="avatar"
+            className="message-avatar"
+          />
+          <div className="message-content">
+            <div className="message-info">
+              <span className="sender-name">{senderName}</span>
+              <span className="message-time">{formatTimeAgo(msg.createdAt)}</span>
+            </div>
+            <div className="message-bubble">
+              <p>{msg.message}</p>
+            </div>
+          </div>
         </div>
+      );
+    })}
+    <div ref={messagesEndRef} />
+  </div>
+)}
 
+{activeChatId && (
         <div className="chat-input-container">
           <input
             type="text"
@@ -540,6 +573,8 @@ try {
             {isSending ? "Sending..." : "Send"}
           </button>
         </div>
+              )}
+
       </main>
 
       {/* AI Chatbot Tab */}
