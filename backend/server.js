@@ -23,7 +23,7 @@ const app = express();
 /* ================= CREATE HTTP SERVER FIRST ================= */
 const server = http.createServer(app);
 const CLIENT_URL = [
-  "contact-rho-hazel.vercel.app",
+  "https://contact-rho-hazel.vercel.app",
   "https://contact-qia9.onrender.com"
 ];
 
