@@ -49,7 +49,7 @@ const handleSubmit = async e => {
         <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required />
         <input type="password" name="password" placeholder="Password" value={form.password} onChange={handleChange} required />
         <ReCAPTCHA
-        sitekey="6Ld8EHosAAAAAIGPfQIeXXqGt5oKLxZpbzymCDQ8"
+        sitekey="6LdFVYosAAAAADgLaH0avabN4PT0FS5HFm-n5mgX"
         onChange={token => {
           setCaptchaToken(token);
         }}
