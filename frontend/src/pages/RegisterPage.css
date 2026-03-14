@@ -131,19 +131,41 @@
   .register-form {
     max-width: 350px;
   }
+
+    .g-recaptcha > div {
+    transform: scale(0.95);
+    -webkit-transform: scale(0.95);
+  }
+
 }
 
-/* RegisterPage.css */
+/* Updated reCAPTCHA container */
 .g-recaptcha {
   display: flex;
   justify-content: center;
-  margin: 10px 0;
-  transform: scale(0.9); /* optional: shrink slightly on mobile */
-  transform-origin: 0 0;
+  align-items: center;
+  margin: 15px 0;
+  width: 100%;
+  overflow: hidden; /* Prevents any accidental bleed */
 }
 
+/* Fix for scaling while maintaining center alignment */
+.g-recaptcha > div {
+  transform-origin: center top; 
+  -webkit-transform-origin: center top;
+}
+
+/* Mobile Responsiveness */
 @media (max-width: 480px) {
-  .g-recaptcha {
-    transform: scale(0.8); /* smaller on small screens */
+  .g-recaptcha > div {
+    transform: scale(0.85);
+    -webkit-transform: scale(0.85);
+  }
+}
+
+@media (max-width: 350px) {
+  .g-recaptcha > div {
+    transform: scale(0.75);
+    -webkit-transform: scale(0.75);
   }
 }
