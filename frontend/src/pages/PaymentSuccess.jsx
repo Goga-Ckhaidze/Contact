@@ -8,23 +8,21 @@ const PaymentSuccess = () => {
   const sessionId = searchParams.get("session_id");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!sessionId) return;
+useEffect(() => {
+  const checkSubscription = async () => {
+    try {
+      const { data } = await axios.get("/api/subscription/status", {
+        withCredentials: true
+      });
 
-    const verifySession = async () => {
-      try {
-        const { data } = await axios.post(
-          "/api/subscription/verify-session",
-          { sessionId },
-          { withCredentials: true }
-        );
-      } catch (err) {
-        console.error("Verification failed:", err);
-      }
-    };
+      console.log("Subscription status:", data);
+    } catch (err) {
+      console.error("Status check failed:", err);
+    }
+  };
 
-    verifySession();
-  }, [sessionId]);
+  checkSubscription();
+}, []);
 
   return (
     <div className="payment-success-container">
