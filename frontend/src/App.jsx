@@ -11,14 +11,14 @@ import ViewProfilePage from "./pages/ViewProfilePage";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<MainPage />} />
+      <Route path="/" element={<ProtectedRoute><MainPage /></ProtectedRoute>} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/verify" element={<VerifyPage />} />
-      <Route path="/profile" element={<ProfilePage />} /> 
-      <Route path="/buy-chatbot" element={<BuyChatbot />} />
-      <Route path="/payment-success" element={<PaymentSuccess />} />
-      <Route path="/profile/:id" element={<ViewProfilePage />} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} /> 
+      <Route path="/buy-chatbot" element={<ProtectedRoute><BuyChatbot /></ProtectedRoute>} />
+      <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+      <Route path="/profile/:id" element={<ProtectedRoute><ViewProfilePage /></ProtectedRoute >} />
       <Route path="*" element={<h1>Page Not Found</h1>} />
     </Routes>
   );
