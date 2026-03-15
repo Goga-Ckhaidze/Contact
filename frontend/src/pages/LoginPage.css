@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', sans-serif; /* Updated Font */
 }
 
 .login-page {
@@ -97,7 +99,42 @@
   text-decoration: underline;
 }
 
-/* MOBILE RESPONSIVE */
+/* --- RECAPTCHA FIXED FOR LOGIN --- */
+.g-recaptcha {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 15px;
+  width: 100%;
+  height: 85px; /* Enough height so bottom isn't cut */
+}
+
+.g-recaptcha > div {
+  /* Fits the 290px internal width of the login box */
+  transform: scale(0.95); 
+  -webkit-transform: scale(0.95);
+  transform-origin: center top; 
+  -webkit-transform-origin: center top;
+}
+
+/* --- RESPONSIVE MEDIA QUERIES --- */
+
+@media (max-width: 768px) {
+  .login-box {
+    max-width: 300px;
+  }
+  
+  .g-recaptcha {
+    height: 75px;
+  }
+
+  .g-recaptcha > div {
+    /* Fits the smaller tablet width */
+    transform: scale(0.85);
+    -webkit-transform: scale(0.85);
+  }
+}
+
 @media (max-width: 480px) {
   .login-box {
     padding: 25px 20px;
@@ -120,10 +157,24 @@
   .auth-switch {
     font-size: 13px;
   }
+
+  .g-recaptcha {
+    height: 70px;
+  }
+
+  .g-recaptcha > div {
+    /* Fits mobile width (approx 260px internal) */
+    transform: scale(0.85);
+    -webkit-transform: scale(0.85);
+  }
 }
 
-@media (max-width: 768px) {
-  .login-box {
-    max-width: 300px;
+@media (max-width: 350px) {
+  .g-recaptcha {
+    height: 65px;
+  }
+  .g-recaptcha > div {
+    transform: scale(0.75);
+    -webkit-transform: scale(0.75);
   }
 }

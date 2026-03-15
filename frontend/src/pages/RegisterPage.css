@@ -1,3 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif; /* Updated Font */
+}
+
 .register-container {
   display: flex;
   justify-content: center;
@@ -94,69 +103,61 @@
   text-decoration: underline;
 }
 
-/* reCAPTCHA centering */
-.g-recaptcha {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-/* MOBILE RESPONSIVE */
-@media (max-width: 480px) {
-  .register-form {
-    padding: 25px 20px;
-  }
-
-  .register-form h2 {
-    font-size: 22px;
-  }
-
-  .register-form input {
-    font-size: 13px;
-    padding: 10px;
-  }
-
-  .register-form button {
-    font-size: 14px;
-    padding: 10px;
-  }
-
-  .auth-switch {
-    font-size: 13px;
-  }
-}
-
-/* TABLET RESPONSIVE */
-@media (max-width: 768px) {
-  .register-form {
-    max-width: 350px;
-  }
-
-    .g-recaptcha > div {
-    transform: scale(0.95);
-    -webkit-transform: scale(0.95);
-  }
-
-}
-
-/* Updated reCAPTCHA container */
+/* --- RECAPTCHA FIXED --- */
 .g-recaptcha {
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 15px 0;
   width: 100%;
-  overflow: hidden; /* Prevents any accidental bleed */
+  /* Increased height so the bottom border isn't cut off when scaled */
+  height: 100px; 
 }
 
-/* Fix for scaling while maintaining center alignment */
 .g-recaptcha > div {
-  transform-origin: center top; 
-  -webkit-transform-origin: center top;
+  /* Scale to match the ~340px width of your desktop inputs */
+  transform: scale(1.1); 
+  -webkit-transform: scale(1.1);
+  transform-origin: center center; 
+  -webkit-transform-origin: center center;
 }
 
-/* Mobile Responsiveness */
+/* --- RESPONSIVE MEDIA QUERIES --- */
+
+@media (max-width: 768px) {
+  .register-form {
+    max-width: 350px;
+  }
+  .g-recaptcha {
+    height: 80px; /* Adjust container for smaller scale */
+  }
+  .g-recaptcha > div {
+    transform: scale(0.95);
+    -webkit-transform: scale(0.95);
+  }
+}
+
 @media (max-width: 480px) {
+  .register-form {
+    padding: 25px 20px;
+  }
+  .register-form h2 {
+    font-size: 22px;
+  }
+  .register-form input {
+    font-size: 13px;
+    padding: 10px;
+  }
+  .register-form button {
+    font-size: 14px;
+    padding: 10px;
+  }
+  .auth-switch {
+    font-size: 13px;
+  }
+  .g-recaptcha {
+    height: 75px;
+  }
   .g-recaptcha > div {
     transform: scale(0.85);
     -webkit-transform: scale(0.85);
@@ -164,6 +165,9 @@
 }
 
 @media (max-width: 350px) {
+  .g-recaptcha {
+    height: 70px;
+  }
   .g-recaptcha > div {
     transform: scale(0.75);
     -webkit-transform: scale(0.75);
