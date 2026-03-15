@@ -7,6 +7,7 @@ import ProfilePage from "./pages/ProfilePage";
 import BuyChatbot from "./pages/BuyChatbot";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import ViewProfilePage from "./pages/ViewProfilePage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
