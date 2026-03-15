@@ -15,6 +15,9 @@ import messageRoutes from "./routes/messageRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import Message from "./models/Message.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import DemoBot from "./models/DemoBot.js";
+import Contact from "./models/Contact.js";
+import User from "./models/User.js";
 
 dotenv.config();
 
@@ -99,20 +102,50 @@ io.on("connection", (socket) => {
     socket.join(room.toString());
   });
 
-  // Send Message
+// Send Message
   socket.on("send_message", async (data) => {
     try {
+      // 1. NORMAL CHAT LOGIC: Save and broadcast the user's message (Your original code!)
       const newMessage = await Message.create({
         chatId: data.chatId,
         sender: data.sender,
         message: data.message,
       });
       io.to(data.chatId.toString()).emit("receive_message", newMessage);
+
+      // 2. DEMO BOT LOGIC: Check who is in this chat
+      // We populate sender/receiver to read their usernames
+      const contact = await Contact.findById(data.chatId).populate("sender receiver");
+      
+      if (contact) {
+        const isDemoBotSender = contact.sender.username === "DemoBot";
+        const isDemoBotReceiver = contact.receiver.username === "DemoBot";
+        
+        let botId = null;
+        if (isDemoBotSender) botId = contact.sender._id;
+        if (isDemoBotReceiver) botId = contact.receiver._id;
+
+        // If DemoBot is in the chat AND the sender of the current message is NOT the bot
+        if (botId && data.sender.toString() !== botId.toString()) {
+          
+          // Wait 1 second so it feels like a real reply
+          setTimeout(async () => {
+            const botReply = await Message.create({
+              chatId: data.chatId,
+              sender: botId,
+              message: "hello this is demo respond",
+            });
+            
+            // Broadcast the bot's reply back to the chat room
+            io.to(data.chatId.toString()).emit("receive_message", botReply);
+          }, 1000);
+        }
+      }
+
     } catch (err) {
       console.error("Message save error:", err);
     }
   });
-
   // Disconnect
   socket.on("disconnect", () => {
     for (let [userId, socketId] of onlineUsers.entries()) {

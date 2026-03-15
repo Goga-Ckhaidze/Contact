@@ -70,10 +70,33 @@ export const verifyUser = async (req, res) => {
     if (user.verificationCode !== code || user.verificationCodeExpires < Date.now())
       return res.status(400).json({ message: "Invalid or expired code" });
 
+    // Mark user as verified
     user.isVerified = true;
     user.verificationCode = null;
     user.verificationCodeExpires = null;
     await user.save();
+
+    // === DEMO BOT AUTO-FRIEND FIX ===
+    const demoBot = await User.findOne({ username: "DemoBot" });
+    if (demoBot) {
+      // Check if already friends to avoid duplicates
+      const alreadyFriend = await Contact.findOne({
+        $or: [
+          { sender: user._id, receiver: demoBot._id },
+          { sender: demoBot._id, receiver: user._id }
+        ]
+      });
+
+      if (!alreadyFriend) {
+        // Create an accepted contact automatically
+        await Contact.create({
+          sender: user._id,
+          receiver: demoBot._id,
+          status: "accepted"
+        });
+      }
+    }
+    // ================================
 
     res.json({ message: "User verified successfully!" });
   } catch (err) {
