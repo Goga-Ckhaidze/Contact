@@ -72,8 +72,9 @@ export default function LoginPage() {
         />
 
         <ReCAPTCHA
+          key="login-captcha"
           className="g-recaptcha"
-          sitekey="6LdFVYosAAAAADgLaH0avabN4PT0FS5HFm-n5mgX"
+          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
           onChange={token => setCaptchaToken(token)}
           onExpired={() => setCaptchaToken("")}
         />
