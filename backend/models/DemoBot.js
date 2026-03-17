@@ -1,28 +1,25 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
 import User from "./User.js";
 
-dotenv.config();
-
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
 async function createDemoBot() {
-  const existing = await User.findOne({ username: "DemoBot" });
-  if (existing) return console.log("DemoBot already exists");
+  try {
+    const existing = await User.findOne({ username: "DemoBot" });
+    if (existing) {
+      console.log("✅ DemoBot already exists in database.");
+      return;
+    }
 
-  const bot = new User({
-    username: "DemoBot",
-    email: "demo@portfolio.com",
-    password: "demo123", // bot won’t log in
-    isVerified: true,
-  });
+    const bot = new User({
+      username: "DemoBot",
+      email: "demo@portfolio.com",
+      password: "demo123", 
+      isVerified: true,
+    });
 
-  await bot.save();
-  console.log("DemoBot created!");
-  mongoose.disconnect();
+    await bot.save();
+    console.log("🚀 DemoBot created successfully!");
+  } catch (error) {
+    console.error("❌ Error creating DemoBot:", error);
+  }
 }
 
-createDemoBot();
+export default createDemoBot;

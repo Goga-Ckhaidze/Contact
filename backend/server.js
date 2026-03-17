@@ -40,8 +40,10 @@ export const io = new Server(server, {
 });
 
 /* ================= DATABASE ================= */
-connectDB();
-
+connectDB().then(() => {
+  // Now that we are connected, ensure the bot exists
+  DemoBot();
+});
 /* ================= SECURITY & MIDDLEWARE ================= */
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
