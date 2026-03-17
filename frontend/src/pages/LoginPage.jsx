@@ -10,6 +10,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
 
+  const API_BASE = import.meta.env.VITE_API_URL || "https://contact-qia9.onrender.com";
+
   const navigate = useNavigate();
 
   const handleNavigate = () => navigate("/register");
@@ -30,7 +32,7 @@ export default function LoginPage() {
 
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        `$${API_BASE}/api/auth/login`,
         {
           ...form,
           captchaToken
