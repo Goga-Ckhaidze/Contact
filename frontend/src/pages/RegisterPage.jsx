@@ -41,6 +41,11 @@ const handleSubmit = async e => {
 
   setLoading(false);
 };
+
+const RECAPTCHA_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LdFVYosAAAAADgLaH0avabN4PT0FS5HFm-n5mgX";
+
+
+
   return (
     <div className="register-container">
       <form className="register-form" onSubmit={handleSubmit}>
@@ -48,15 +53,17 @@ const handleSubmit = async e => {
         <input type="text" name="username" placeholder="Username" value={form.username} onChange={handleChange} required />
         <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required />
         <input type="password" name="password" placeholder="Password" value={form.password} onChange={handleChange} required />
-        <ReCAPTCHA
-        key="register-captcha"
-        className="g-recaptcha"
-        sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-        onChange={token => {
-          setCaptchaToken(token);
-        }}
-        onExpired={() => setCaptchaToken("")}
-        />
+{RECAPTCHA_KEY ? (
+  <ReCAPTCHA
+    key="login-captcha" 
+    className="g-recaptcha"
+    sitekey={RECAPTCHA_KEY}
+    onChange={token => setCaptchaToken(token)}
+    onExpired={() => setCaptchaToken("")}
+  />
+) : (
+  <p style={{ color: "red" }}>Recaptcha Key Missing!</p>
+)}
         <button style={{ marginTop: "10px" }} type="submit" disabled={loading}>{loading ? "Sending OTP..." : "Register"}</button>
         {message && <p className="message">{message}</p>}
                 <p className="auth-switch" onClick={handleNavigate}>

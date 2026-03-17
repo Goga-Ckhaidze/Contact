@@ -48,6 +48,8 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const RECAPTCHA_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LdFVYosAAAAADgLaH0avabN4PT0FS5HFm-n5mgX";
+console.log("DEBUG - Sitekey value:", import.meta.env.VITE_RECAPTCHA_SITE_KEY);
   return (
     <div className="register-container">
       <form className="register-form" onSubmit={handleSubmit}>
@@ -71,13 +73,17 @@ export default function LoginPage() {
           required
         />
 
-        <ReCAPTCHA
-          key="login-captcha"
-          className="g-recaptcha"
-          sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-          onChange={token => setCaptchaToken(token)}
-          onExpired={() => setCaptchaToken("")}
-        />
+{RECAPTCHA_KEY ? (
+  <ReCAPTCHA
+    key="login-captcha" 
+    className="g-recaptcha"
+    sitekey={RECAPTCHA_KEY}
+    onChange={token => setCaptchaToken(token)}
+    onExpired={() => setCaptchaToken("")}
+  />
+) : (
+  <p style={{ color: "red" }}>Recaptcha Key Missing!</p>
+)}
 
         <button style={{ marginTop: "10px" }} type="submit" disabled={loading}>
           {loading ? "Logging in..." : "Login"}
