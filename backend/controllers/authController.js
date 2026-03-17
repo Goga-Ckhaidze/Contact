@@ -108,31 +108,53 @@ export const verifyUser = async (req, res) => {
 /* ------------------- LOGIN ------------------- */
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
+
+    // 1. Verify Captcha Token exists
+    if (!captchaToken) {
+      return res.status(400).json({ message: "Please complete the captcha" });
+    }
+
+    // 2. Verify with Google
+    const secretKey = process.env.RECAPTCHA_SECRET;
+    const captchaVerification = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captchaToken}`
+    );
+
+    if (!captchaVerification.data.success) {
+      return res.status(400).json({ message: "Captcha verification failed. Try again." });
+    }
+
+    // 3. Find User
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
-    if (!user.isVerified) return res.status(400).json({ message: "User not verified" });
+    if (!user.isVerified) return res.status(400).json({ message: "Please verify your email first" });
 
+    // 4. Check Password
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
+    // 5. Generate Token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-// ✅ Correct settings for Vercel + Render
-res.cookie("token", token, {
-  httpOnly: true,
-  sameSite: "none", // Required for cross-site (Vercel to Render)
-  secure: true,      // Must be true if sameSite is "none"
-  maxAge: 7 * 24 * 60 * 60 * 1000, 
-});
+    // 6. Set Cookie (Essential for Vercel + Render cross-domain)
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "none", 
+      secure: true,    
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+    });
 
-    res.json({ message: "Login successful", user: { id: user._id, username: user.username } });
+    res.json({ 
+      message: "Login successful", 
+      user: { id: user._id, username: user.username } 
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Login Error:", err);
+    res.status(500).json({ message: "Server error during login" });
   }
 };
-
 // GET CURRENT USER
 export const getMe = async (req, res) => {
   try {
