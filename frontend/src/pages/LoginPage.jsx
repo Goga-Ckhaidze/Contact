@@ -32,7 +32,7 @@ export default function LoginPage() {
 
     try {
       const res = await axios.post(
-        `$${API_BASE}/api/auth/login`,
+        `${API_BASE}/api/auth/login`,
         {
           ...form,
           captchaToken
