@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
+    
     <Routes>
       <Route path="/" element={<ProtectedRoute><MainPage /></ProtectedRoute>} />
       <Route path="/register" element={<RegisterPage />} />
@@ -22,6 +23,7 @@ function App() {
       <Route path="/profile/:id" element={<ProtectedRoute><ViewProfilePage /></ProtectedRoute >} />
       <Route path="*" element={<h1>Page Not Found</h1>} />
     </Routes>
+
   );
 }
 
