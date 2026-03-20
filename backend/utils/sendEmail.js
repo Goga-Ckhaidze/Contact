@@ -4,15 +4,14 @@ dotenv.config();
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465, 
-  secure: true, 
+  port: 587,           // ✅ CHANGE THIS
+  secure: false,       // ❌ MUST be false for 587
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, 
+    pass: process.env.MAIL_PASS,
   },
-  // THE FIX: This forces the connection to use IPv4
-  family: 4, 
-  connectionTimeout: 15000, 
+  family: 4,
+  connectionTimeout: 15000,
 });
 
 export const sendEmail = async (to, subject, html) => {
@@ -23,8 +22,9 @@ export const sendEmail = async (to, subject, html) => {
       subject,
       html,
     });
+    console.log("Email sent:", info.response); // optional debug
   } catch (err) {
     console.error("Email send error:", err);
-    throw err; // <-- ADD THIS: This tells your authController that it failed
+    throw err;
   }
 };

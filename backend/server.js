@@ -21,6 +21,9 @@ import User from "./models/User.js";
 
 dotenv.config();
 
+// ✅ ADD HERE
+console.log("MAIL_USER:", process.env.MAIL_USER);
+console.log("MAIL_PASS:", process.env.MAIL_PASS ? "EXISTS" : "MISSING");
 
 const app = express();
 /* ================= CREATE HTTP SERVER FIRST ================= */
