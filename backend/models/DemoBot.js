@@ -11,7 +11,7 @@ async function createDemoBot() {
     const bot = new User({
       username: "DemoBot",
       email: "demo@portfolio.com",
-      password: "demo123", 
+      password: "Demo1234!", 
       isVerified: true,
     });
 

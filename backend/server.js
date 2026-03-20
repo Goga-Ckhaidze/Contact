@@ -44,7 +44,11 @@ connectDB().then(() => {
   // Now that we are connected, ensure the bot exists
   DemoBot();
 });
+
 /* ================= SECURITY & MIDDLEWARE ================= */
+
+app.set('trust proxy', 1);
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -65,6 +69,7 @@ const limiter = rateLimit({
   max: 100,
 });
 app.use(limiter);
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: CLIENT_URL,
