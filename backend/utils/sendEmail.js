@@ -1,19 +1,18 @@
-import { Resend } from "resend";
+import sgMail from "@sendgrid/mail";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export const sendEmail = async (to, subject, html) => {
   try {
-    const data = await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to,
+    await sgMail.send({
+      to,                        // recipient email
+      from: "yourverifiedemail@gmail.com", // any email you own
       subject,
       html,
     });
-
-    console.log("Email sent:", data);
+    console.log("Email sent successfully");
   } catch (err) {
-    console.error("Email send error:", err);
+    console.error("SendGrid email error:", err);
     throw err;
   }
 };
