@@ -63,12 +63,12 @@ export const registerUser = async (req, res) => {
     }
 
     // 6. Send Email
-    await sendEmail(
-      email,
-      "Verify your account",
-      `<p>Hello ${username}, your verification code is <strong style="font-size: 20px;">${otp}</strong></p>`
-    );
-
+await sendEmail({
+  toEmail: email,
+  toName: username,
+  subject: "Verify your account",
+  htmlContent: `<p>Hello ${username}, your verification code is <strong style="font-size: 20px;">${otp}</strong></p>`
+});
     res.status(200).json({ message: "Verification code sent to email" });
   } catch (err) {
     console.error("Register Error:", err);
