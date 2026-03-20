@@ -75,6 +75,7 @@ await sendEmail({
     res.status(500).json({ message: "Server error during registration" });
   }
 };
+// 
 
 /* ------------------- VERIFY ------------------- */
 export const verifyUser = async (req, res) => {
