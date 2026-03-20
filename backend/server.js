@@ -45,7 +45,20 @@ connectDB().then(() => {
   DemoBot();
 });
 /* ================= SECURITY & MIDDLEWARE ================= */
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "https://www.google.com", "https://www.gstatic.com"],
+        "frame-src": ["'self'", "https://www.google.com"],
+        "connect-src": ["'self'", "https://contact-qia9.onrender.com"],
+        "img-src": ["'self'", "data:", "https://cdn-icons-png.flaticon.com"],
+      },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -68,6 +81,14 @@ app.use(express.json());
 // This stops the circular dependency error. Now any controller can use req.io
 app.use((req, res, next) => {
   req.io = io;
+  next();
+});
+
+
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  // "credentialless" is much safer than "require-corp" for most apps
+  res.setHeader("Cross-Origin-Embedder-Policy", "credentialless"); 
   next();
 });
 

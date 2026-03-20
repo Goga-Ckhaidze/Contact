@@ -18,7 +18,9 @@ export const sendEmail = async (to, subject, html) => {
       subject,
       html,
     });
+    console.log("Email sent: ", info.messageId); // Optional: good for debugging
   } catch (err) {
     console.error("Email send error:", err);
+    throw err; // <-- ADD THIS: This tells your authController that it failed
   }
 };
