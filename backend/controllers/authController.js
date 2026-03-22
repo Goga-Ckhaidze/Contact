@@ -72,11 +72,11 @@ export const registerUser = async (req, res) => {
 };
 
 /* ------------------- VERIFY ------------------- */
+/* ------------------- VERIFY ------------------- */
 export const verifyUser = async (req, res) => {
   try {
     const { email, code } = req.body;
     
-    // Look for the user in the PENDING area, not the main area
     const pendingUser = await PendingUser.findOne({ email });
 
     if (!pendingUser) return res.status(400).json({ message: "User not found or code expired" });
@@ -85,18 +85,15 @@ export const verifyUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired code" });
     }
 
-    // The code is correct! Now we create the official User
     const newUser = await User.create({
       username: pendingUser.username,
       email: pendingUser.email,
-      password: pendingUser.password, // This is already hashed from step 1
+      password: pendingUser.password,
       isVerified: true,
     });
 
-    // Delete them from the pending list so it stays clean
     await PendingUser.deleteOne({ email });
 
-    // === DEMO BOT AUTO-FRIEND FIX ===
     const demoBot = await User.findOne({ username: "DemoBot" });
     if (demoBot) {
       const alreadyFriend = await Contact.findOne({
@@ -114,12 +111,26 @@ export const verifyUser = async (req, res) => {
         });
       }
     }
-    // ================================
 
-    res.json({ message: "User verified successfully!" });
+    // Generate token for auto-login
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "none", 
+      secure: true,    
+      maxAge: 7 * 24 * 60 * 60 * 1000, 
+    });
+
+    // ✅ ONLY ONE RESPONSE SENT HERE
+    return res.json({ 
+      message: "User verified and logged in successfully!", 
+      user: { id: newUser._id, username: newUser.username } 
+    });
+
   } catch (err) {
     console.error("Verify Error:", err);
-    res.status(500).json({ message: "Server error during verification" });
+    return res.status(500).json({ message: "Server error during verification" });
   }
 };
 
