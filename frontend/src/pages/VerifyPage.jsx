@@ -27,20 +27,24 @@ const handleVerify = async (e) => {
     return;
   }
 
-  try {
-    const res = await axios.post(`${API_BASE}/api/auth/verify2fa`, {
-      email,
-      code: code.toString(),
-    });
+try {
+      // ✅ FIXED AXIOS CALL
+      const res = await axios.post(
+        `${API_BASE}/api/auth/verify2fa`,
+        { email, code: code.toString() }, // Data object
+        { withCredentials: true }         // Config object (for cookies)
+      );
 
-    setMessage(res.data.message);
-    navigate("/");
-  } catch (err) {
-    setMessage(err.response?.data?.message || "Error occurred");
-  }
+      setMessage(res.data.message);
+      // Redirect to home - using replace: true helps clear the "verify" page from history
+      navigate("/", { replace: true });
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Error occurred");
+    }
 
-  setLoading(false);
-};
+    setLoading(false);
+  };
+
   return (
     <div className="verify-container">
       <form className="verify-form" onSubmit={handleVerify}>
