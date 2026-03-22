@@ -34,9 +34,14 @@ const handleSubmit = async e => {
       ...form,
       captchaToken
     });
+    
     setMessage(res.data.message);
 
-    navigate("/verify", { state: { email: form.email, previewURL: res.data.previewURL } });
+    // ✅ This will now work because /verify is NOT protected in App.js
+    navigate("/verify", { 
+      state: { email: form.email },
+      replace: true 
+    });
   } catch (err) {
     setMessage(err.response?.data?.message || "Error occurred");
   }

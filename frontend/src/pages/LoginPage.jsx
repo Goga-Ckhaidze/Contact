@@ -31,18 +31,18 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await axios.post(
+      await axios.post(
         `${API_BASE}/api/auth/login`,
-        {
-          ...form,
-          captchaToken
-        },
+        { ...form, captchaToken },
         { withCredentials: true }
       );
 
       setMessage("Login successful!");
-      navigate("/profile");
-
+      // ✅ Use replace so they can't click "back" into the login page
+      navigate("/", { replace: true }); 
+      
+      // Force a quick refresh if you aren't using a Global Auth State
+      // window.location.reload(); 
     } catch (err) {
       setMessage(err.response?.data?.message || "Login failed");
     }
