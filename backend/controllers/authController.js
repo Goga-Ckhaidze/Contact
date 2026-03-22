@@ -2,7 +2,8 @@ import axios from "axios";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import Contact from "../models/Contact.js"; // ✅ Added missing import for the DemoBot fix
+import PendingUser from "../models/PendingUser.js"; // <-- Staging model
+import Contact from "../models/Contact.js"; 
 import { sendEmail } from "../utils/sendEmail.js";
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -12,105 +13,102 @@ export const registerUser = async (req, res) => {
   try {
     const { username, email, password, captchaToken } = req.body;
 
-    // 1. Check Captcha Token
     if (!captchaToken) {
       return res.status(400).json({ message: "Captcha token missing" });
     }
 
-    // 2. Verify Captcha with Google
     const secretKey = process.env.RECAPTCHA_SECRET;
     const captchaVerification = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify`,
-      null,
-      {
-        params: {
-          secret: secretKey,
-          response: captchaToken,
-        },
-      }
+      `https://www.google.com/recaptcha/api/siteverify`, null,
+      { params: { secret: secretKey, response: captchaToken } }
     );
 
     if (!captchaVerification.data.success) {
       return res.status(400).json({ message: "Captcha verification failed" });
     }
 
-    // 3. Check if User Exists
-    let user = await User.findOne({ email });
-    if (user && user.isVerified) {
+    // Check if they are already a fully verified User
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // 4. Generate OTP & Hash Password
     const otp = generateOTP();
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // 5. Update unverified user OR create new user
-    if (user) {
-      user.username = username;
-      user.password = hashedPassword;
-      user.verificationCode = otp;
-      user.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
-      await user.save();
+    // Check if they are already sitting in the Pending database
+    let pendingUser = await PendingUser.findOne({ email });
+    
+    if (pendingUser) {
+      // If they are pending and asked for a new code, just update their info
+      pendingUser.username = username;
+      pendingUser.password = hashedPassword;
+      pendingUser.verificationCode = otp;
+      pendingUser.verificationCodeExpires = Date.now() + 10 * 60 * 1000;
+      await pendingUser.save();
     } else {
-      user = await User.create({
+      // If they are totally new, create them in the Pending area
+      await PendingUser.create({
         username,
         email,
         password: hashedPassword,
         verificationCode: otp,
         verificationCodeExpires: Date.now() + 10 * 60 * 1000,
-        isVerified: false,
       });
     }
 
-    // 6. Send Email
-await sendEmail({
-  toEmail: email,
-  toName: username,
-  subject: "Verify your account",
-  htmlContent: `<p>Hello ${username}, your verification code is <strong style="font-size: 20px;">${otp}</strong></p>`
-});
+    await sendEmail({
+      toEmail: email,
+      toName: username,
+      subject: "Verify your account",
+      htmlContent: `<p>Hello ${username}, your verification code is <strong style="font-size: 20px;">${otp}</strong></p>`
+    });
+
     res.status(200).json({ message: "Verification code sent to email" });
   } catch (err) {
     console.error("Register Error:", err);
     res.status(500).json({ message: "Server error during registration" });
   }
 };
-// 
 
 /* ------------------- VERIFY ------------------- */
 export const verifyUser = async (req, res) => {
   try {
     const { email, code } = req.body;
-    const user = await User.findOne({ email });
+    
+    // Look for the user in the PENDING area, not the main area
+    const pendingUser = await PendingUser.findOne({ email });
 
-    if (!user) return res.status(400).json({ message: "User not found" });
-    if (user.isVerified) return res.status(400).json({ message: "User already verified" });
+    if (!pendingUser) return res.status(400).json({ message: "User not found or code expired" });
 
-    if (user.verificationCode !== code || user.verificationCodeExpires < Date.now()) {
+    if (pendingUser.verificationCode !== code || pendingUser.verificationCodeExpires < Date.now()) {
       return res.status(400).json({ message: "Invalid or expired code" });
     }
 
-    // Mark user as verified
-    user.isVerified = true;
-    user.verificationCode = null;
-    user.verificationCodeExpires = null;
-    await user.save();
+    // The code is correct! Now we create the official User
+    const newUser = await User.create({
+      username: pendingUser.username,
+      email: pendingUser.email,
+      password: pendingUser.password, // This is already hashed from step 1
+      isVerified: true,
+    });
+
+    // Delete them from the pending list so it stays clean
+    await PendingUser.deleteOne({ email });
 
     // === DEMO BOT AUTO-FRIEND FIX ===
     const demoBot = await User.findOne({ username: "DemoBot" });
     if (demoBot) {
-      // Check if already friends to avoid duplicates
       const alreadyFriend = await Contact.findOne({
         $or: [
-          { sender: user._id, receiver: demoBot._id },
-          { sender: demoBot._id, receiver: user._id }
+          { sender: newUser._id, receiver: demoBot._id },
+          { sender: demoBot._id, receiver: newUser._id }
         ]
       });
 
       if (!alreadyFriend) {
-        // Create an accepted contact automatically
         await Contact.create({
-          sender: user._id,
+          sender: newUser._id,
           receiver: demoBot._id,
           status: "accepted"
         });
