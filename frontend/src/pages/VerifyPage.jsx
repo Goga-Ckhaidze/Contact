@@ -13,15 +13,24 @@ function VerifyPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+const API_BASE = import.meta.env.VITE_API_URL;
+
 const handleVerify = async (e) => {
   e.preventDefault();
   setLoading(true);
   setMessage("");
 
+  if (!API_BASE) {
+    setMessage("API URL not configured");
+    console.error("❌ VITE_API_URL is missing");
+    setLoading(false);
+    return;
+  }
+
   try {
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/verify2fa`, {
+    const res = await axios.post(`${API_BASE}/api/auth/verify2fa`, {
       email,
-      code: code.toString(), // always string
+      code: code.toString(),
     });
 
     setMessage(res.data.message);
