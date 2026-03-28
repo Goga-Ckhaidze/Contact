@@ -3,14 +3,12 @@ import User from "../models/User.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create subscription checkout session
 export const createSubscriptionSession = async (req, res) => {
   const { priceId } = req.body;
   if (!priceId) return res.status(400).json({ error: "Missing priceId" });
 
   try {
-    // 1. PREVENT DOUBLE BUY: Check if user already has an active, unexpired sub
-    let isActive = req.user.chatbotSubscriptionActive || false;
+    const isActive = req.user.chatbotSubscriptionActive || false;
     const expiresAt = req.user.chatbotSubscriptionExpires || null;
     
     if (isActive && expiresAt && new Date(expiresAt) > new Date()) {
@@ -29,51 +27,42 @@ export const createSubscriptionSession = async (req, res) => {
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error("Stripe session error:", err);
+    console.error("Stripe Session Error:", err.message);
     res.status(500).json({ error: "Failed to create subscription" });
   }
 };
 
 export const getSubscriptionStatus = async (req, res) => {
   try {
-    const user = req.user;
-
+    // Fetch fresh from DB to ensure UI is in sync
+    const user = await User.findById(req.user._id);
     let active = user.chatbotSubscriptionActive || false;
     const expiresAt = user.chatbotSubscriptionExpires || null;
 
-    // 2. SERVER-SIDE EXPIRATION CHECK
     if (active && expiresAt && new Date(expiresAt) < new Date()) {
-      active = false; // Mark as inactive if the expiration date is in the past
+      active = false;
     }
 
     res.json({ active, expiresAt });
   } catch (err) {
-    console.error("Subscription status error:", err);
-    res.status(500).json({ message: "Failed to fetch subscription status" });
+    console.error("Status Fetch Error:", err.message);
+    res.status(500).json({ message: "Failed to fetch status" });
   }
 };
 
-// Stripe webhook to confirm payment
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
-  // 1. ADD THIS: This tells you if the endpoint is even being called
-  console.log("🔔 Webhook received! Signature head exists:", !!sig);
-
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    console.log("✅ 2. Event verified:", event.type);
   } catch (err) {
-    // If you see this in Render logs, your STRIPE_WEBHOOK_SECRET is wrong
-    console.error("❌ X. Verification failed:", err.message);
+    console.error("Webhook Signature Verification Failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    console.log("💳 3. Payment Success Session ID:", session.id);
-    console.log("👤 4. UserID (client_reference_id):", session.client_reference_id);
     
     try {
       const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
@@ -81,19 +70,51 @@ export const stripeWebhook = async (req, res) => {
       });
 
       const userId = session.client_reference_id;
-      // ... your expiration logic ...
+      const interval = fullSession.line_items.data[0].price.recurring.interval;
 
-      const updated = await User.findByIdAndUpdate(userId, {
+      let expiresAt = new Date();
+      if (interval === "week") expiresAt.setDate(expiresAt.getDate() + 7);
+      else if (interval === "month") expiresAt.setMonth(expiresAt.getMonth() + 1);
+      else if (interval === "year") expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+      await User.findByIdAndUpdate(userId, {
         chatbotSubscriptionActive: true,
         chatbotSubscriptionExpires: expiresAt
-      }, { new: true }); // 'new: true' helps us verify the update worked
-
-      console.log("🚀 5. DB Update Success for user:", updated?.username);
-
+      });
+      
+      console.log(`Subscription activated for User: ${userId}`);
     } catch (err) {
-      console.error("❌ DB Update Error:", err);
+      console.error("Webhook DB Update Error:", err.message);
     }
   }
 
   res.json({ received: true });
+};
+
+export const verifySubscriptionSession = async (req, res) => {
+  const { session_id } = req.query;
+  if (!session_id) return res.status(400).json({ error: "Missing session_id" });
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+
+    if (session.payment_status === "paid") {
+      const userId = session.client_reference_id;
+      
+      // Default to 1 month for instant verification
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      await User.findByIdAndUpdate(userId, {
+        chatbotSubscriptionActive: true,
+        chatbotSubscriptionExpires: expiresAt,
+      });
+
+      return res.json({ success: true });
+    } 
+    res.status(400).json({ success: false });
+  } catch (err) {
+    console.error("Session Verification Error:", err.message);
+    res.status(500).json({ error: "Verification failed" });
+  }
 };
