@@ -578,11 +578,15 @@ const joinChat = async (chatId) => {
       </main>
 
       {/* AI Chatbot Tab */}
+
 <div
   className="chat-tab"
   onClick={async () => {
     try {
-      const res = await axios.get("/api/subscription/status");
+      // ADD { withCredentials: true } HERE
+      const res = await axios.get("/api/subscription/status", { 
+        withCredentials: true 
+      });
       const { active, expiresAt } = res.data;
 
       if (!active || (expiresAt && new Date(expiresAt) < new Date())) {
@@ -591,7 +595,7 @@ const joinChat = async (chatId) => {
         return;
       }
 
-      setIsOpen(true); // Subscription is active, open AI drawer
+      setIsOpen(true); 
     } catch (err) {
       console.error(err);
       alert("Error checking subscription. Try again later.");
