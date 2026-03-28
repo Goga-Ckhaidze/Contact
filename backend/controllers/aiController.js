@@ -12,19 +12,20 @@ export const handleChat = async (req, res) => {
 
     const { message, userId } = req.body;
 
+    const actualUserId = req.user?._id || userId;
+
     const currentUser = req.user || await User.findById(userId);
 
-    if (!currentUser) {
-      return res.status(400).json({ text: "User not found." });
-    }
-
+if (!currentUser) {
+  return res.status(400).json({ text: "User not found." });
+}
     /* ================= SUBSCRIPTION CHECK ================= */
 
     if (
-      !currentUser.chatbotSubscriptionActive ||
-      !currentUser.chatbotSubscriptionExpires ||
-      new Date(currentUser.chatbotSubscriptionExpires) < new Date()
-    ) {
+  !currentUser.chatbotSubscriptionActive ||
+  !currentUser.chatbotSubscriptionExpires ||
+  new Date(currentUser.chatbotSubscriptionExpires) < new Date()
+) {
       return res.status(403).json({
         text: "🔒 Chatbot access requires a subscription."
       });
