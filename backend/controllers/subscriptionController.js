@@ -58,38 +58,40 @@ export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
+  // 1. ADD THIS: This tells you if the endpoint is even being called
+  console.log("🔔 Webhook received! Signature head exists:", !!sig);
+
   try {
-    // req.body here MUST be the raw buffer from express.raw()
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    console.log("✅ 2. Event verified:", event.type);
   } catch (err) {
-    console.error("Webhook Error:", err.message);
+    // If you see this in Render logs, your STRIPE_WEBHOOK_SECRET is wrong
+    console.error("❌ X. Verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+    console.log("💳 3. Payment Success Session ID:", session.id);
+    console.log("👤 4. UserID (client_reference_id):", session.client_reference_id);
     
     try {
-      // Fetch the session again to get line_items (contains the price/plan info)
       const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
         expand: ['line_items'],
       });
 
       const userId = session.client_reference_id;
-      const interval = fullSession.line_items.data[0].price.recurring.interval; // 'week', 'month', or 'year'
+      // ... your expiration logic ...
 
-      let expiresAt = new Date();
-      if (interval === "week") expiresAt.setDate(expiresAt.getDate() + 7);
-      else if (interval === "month") expiresAt.setMonth(expiresAt.getMonth() + 1);
-      else if (interval === "year") expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-      await User.findByIdAndUpdate(userId, {
+      const updated = await User.findByIdAndUpdate(userId, {
         chatbotSubscriptionActive: true,
         chatbotSubscriptionExpires: expiresAt
-      });
+      }, { new: true }); // 'new: true' helps us verify the update worked
+
+      console.log("🚀 5. DB Update Success for user:", updated?.username);
 
     } catch (err) {
-      console.error("DB Update Error:", err);
+      console.error("❌ DB Update Error:", err);
     }
   }
 
