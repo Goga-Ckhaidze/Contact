@@ -70,6 +70,7 @@ export const stripeWebhook = async (req, res) => {
       });
 
       const userId = session.client_reference_id;
+      console.log(`Processing subscription for User: ${userId}`);
       const interval = fullSession.line_items.data[0].price.recurring.interval;
 
       let expiresAt = new Date();
