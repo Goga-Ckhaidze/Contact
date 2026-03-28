@@ -79,12 +79,51 @@ export const verifyUser = async (req, res) => {
     
     const pendingUser = await PendingUser.findOne({ email });
 
-    if (!pendingUser) return res.status(400).json({ message: "User not found or code expired" });
-
-    if (pendingUser.verificationCode !== code || pendingUser.verificationCodeExpires < Date.now()) {
-      return res.status(400).json({ message: "Invalid or expired code" });
+    if (!pendingUser) {
+      return res.status(400).json({ message: "User not found or code expired" });
     }
 
+    // 🚫 BLOCK CHECK (added)
+    if (
+      pendingUser.verificationBlockedUntil &&
+      pendingUser.verificationBlockedUntil > Date.now()
+    ) {
+      return res.status(429).json({
+        message: "Too many attempts. Try again later.",
+      });
+    }
+
+    // ❌ WRONG CODE (your logic + attempts added)
+    if (
+      pendingUser.verificationCode !== code ||
+      pendingUser.verificationCodeExpires < Date.now()
+    ) {
+      // ⬇️ increase attempts
+      pendingUser.verificationAttempts =
+        (pendingUser.verificationAttempts || 0) + 1;
+
+      // 🚨 if 3 attempts → block
+      if (pendingUser.verificationAttempts >= 3) {
+        pendingUser.verificationBlockedUntil =
+          Date.now() + 10 * 60 * 1000; // 10 min block
+        pendingUser.verificationAttempts = 0; // reset after block
+      }
+
+      await pendingUser.save();
+
+      return res.status(400).json({
+        message:
+          pendingUser.verificationAttempts === 0
+            ? "Too many attempts. Try again later."
+            : `Invalid or expired code. Attempts left: ${3 - pendingUser.verificationAttempts}`,
+      });
+    }
+
+    // ✅ SUCCESS → reset attempts (added, safe)
+    pendingUser.verificationAttempts = 0;
+    pendingUser.verificationBlockedUntil = null;
+
+    // ⬇️ YOUR ORIGINAL CODE STARTS HERE (unchanged)
     const newUser = await User.create({
       username: pendingUser.username,
       email: pendingUser.email,
@@ -122,7 +161,6 @@ export const verifyUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, 
     });
 
-    // ✅ ONLY ONE RESPONSE SENT HERE
     return res.json({ 
       message: "User verified and logged in successfully!", 
       user: { id: newUser._id, username: newUser.username } 
