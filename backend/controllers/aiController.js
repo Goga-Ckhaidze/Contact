@@ -14,7 +14,7 @@ export const handleChat = async (req, res) => {
 
     const actualUserId = req.user?._id || userId;
 
-    const currentUser = req.user || await User.findById(userId);
+const currentUser = await User.findById(actualUserId);
 
 if (!currentUser) {
   return res.status(400).json({ text: "User not found." });
