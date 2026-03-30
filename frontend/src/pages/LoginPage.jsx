@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef  } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./RegisterPage.css";
@@ -45,10 +45,18 @@ export default function LoginPage() {
       // window.location.reload(); 
     } catch (err) {
       setMessage(err.response?.data?.message || "Login failed");
+       // ✅ FORCE USER TO DO CAPTCHA AGAIN
+       
+  if (captchaRef.current) {
+    captchaRef.current.reset();
+  }
+  setCaptchaToken("");
     }
 
     setLoading(false);
   };
+
+  const captchaRef = useRef(null);
 
   const RECAPTCHA_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LdFVYosAAAAADgLaH0avabN4PT0FS5HFm-n5mgX";
 console.log("DEBUG - Sitekey value:", import.meta.env.VITE_RECAPTCHA_SITE_KEY);
@@ -80,6 +88,7 @@ console.log("DEBUG - Sitekey value:", import.meta.env.VITE_RECAPTCHA_SITE_KEY);
     key="login-captcha" 
     className="g-recaptcha"
     sitekey={RECAPTCHA_KEY}
+    ref={captchaRef}
     onChange={token => setCaptchaToken(token)}
     onExpired={() => setCaptchaToken("")}
   />
